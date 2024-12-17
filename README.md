@@ -1,13 +1,12 @@
-# Demo Whisper: Asistente de Voz en Tiempo Real con Realtime API de OpenAI
+# Asistente de Voz en Tiempo Real con Realtime API de OpenAI
 
 Este proyecto es una demo de un asistente que permite mantener una conversación por voz en tiempo real utilizando la Realtime API de OpenAI con el modelo `gpt-4o-realtime-preview-2024-10-01`.
 
 ## Características
 
-- **Conversación en tiempo real** con reconocimiento de voz y generación de respuestas.
+- **Conversación en tiempo real** con reconocimiento de voz y generación de respuestas, haciendo uso de prompts customizados.
 - **Visualización de audio** captado y recibido en tiempo real mediante `customtkinter`.
 - **Integración con WebSocket** para una comunicación eficiente con la API de OpenAI.
-- **Interfaz gráfica** simple y efectiva para demostración.
 
 ## Requisitos
 
@@ -44,7 +43,7 @@ Este proyecto es una demo de un asistente que permite mantener una conversación
 1. La aplicación mostrará una interfaz donde podrás hablar y recibir respuestas en tiempo real.  
 2. La barra superior muestra el audio captado por el micrófono.  
 3. La barra inferior muestra el audio generado por la IA.  
-4. **Cerrar la aplicación**: Presiona `ESC` para cerrar la aplicación de manera segura.
+4. **Cerrar la aplicación**: Presiona `ESC` para cerrar la aplicación.
    
 
 ## Funcionalidad del Código
