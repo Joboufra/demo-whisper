@@ -6,8 +6,7 @@ import threading
 import numpy as np
 from dotenv import load_dotenv
 from websocket import WebSocketApp
-import tkinter as tk
-from tkinter import Canvas
+import customtkinter as ctk
 
 #Cargar variables de entorno
 load_dotenv()
@@ -23,26 +22,29 @@ stream = None
 input_stream = None
 running = True
 
-# Parámetros de audio
+#Parámetros de audio
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 24200
-CHUNK = 2048  # Tamaño del buffer para capturar más audio por iteración
-input_device_index = None  # Usar el dispositivo de entrada por defecto
+CHUNK = 1024
+input_device_index = None
 
-#Crear la ventana principal de tkinter
-root = tk.Tk()
-root.title("Demo")
-root.geometry("600x300")
-root.configure(bg="black")
+#Configurar el tema de customtkinter
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
+
+#Crear la ventana principal
+root = ctk.CTk()
+root.title("Demo de asistente - Realtime API OpenAI")
+root.geometry("435x235")
 
 #Crear el canvas
-canvas = Canvas(root, width=600, height=300, bg="black", highlightthickness=0)
-canvas.pack()
+canvas = ctk.CTkCanvas(root, width=600, height=300, bg="black", highlightthickness=0)
+canvas.pack(fill="both", expand=True)
 
 #Inicializar las barras para el audio captado y el audio recibido
-num_bars = 100
-bar_width = 6
+num_bars = 50
+bar_width = 10
 spacing = 1
 center_y_input = 75
 center_y_output = 225
@@ -57,25 +59,26 @@ for i in range(num_bars):
     bars_input.append(bar_input)
     bars_output.append(bar_output)
 
+#Búfer para el audio recibido
+output_buffer = bytearray()
+
 def update_visualization(audio_data=None, output_data=None):
-    """
-    Actualiza la animación de las barras para el audio captado y el audio recibido.
-    """
     def process_audio(data, bars, center_y):
         if data is not None:
             audio_np = np.frombuffer(data, dtype=np.int16)
-            segment_size = len(audio_np) // num_bars
+            segment_size = max(len(audio_np) // num_bars, 1)
             amplitudes = [np.abs(audio_np[i * segment_size: (i + 1) * segment_size]).mean() for i in range(num_bars)]
             max_amplitude = 5000
             heights = [min(int((amp / max_amplitude) * 100), 100) for amp in amplitudes]
             for i, height in enumerate(heights):
                 x = i * (bar_width + spacing)
                 canvas.coords(bars[i], x, center_y - height, x, center_y + height)
-        
-    process_audio(audio_data, bars_input, center_y_input)
-    process_audio(output_data, bars_output, center_y_output)
-    
-    root.update_idletasks()
+
+    if audio_data:
+        process_audio(audio_data, bars_input, center_y_input)
+    if output_data:
+        process_audio(output_data, bars_output, center_y_output)
+    root.after(25, update_visualization)  # Actualizar cada 25 ms para mejorar la fluidez
 
 def start_audio_stream():
     global stream
@@ -118,7 +121,6 @@ def capture_audio(ws):
             }
             ws.send(json.dumps(audio_message))
             
-            #Actualizar visualización con el audio captado
             update_visualization(audio_data=data)
         except Exception as e:
             print(f"Error al capturar audio: {e}")
@@ -154,6 +156,7 @@ def on_open(ws):
     print("Evento de configuración de sesión enviado")
 
 def on_message(ws, message):
+    global output_buffer
     res = json.loads(message)
     print("Mensaje recibido del servidor:", res)
     
@@ -163,8 +166,11 @@ def on_message(ws, message):
     
     elif res["type"] == "response.audio.delta":
         output_audio = base64.b64decode(res["delta"])
+        output_buffer.extend(output_audio)
         start_audio_stream()
-        stream.write(output_audio)
+        while len(output_buffer) >= CHUNK:
+            stream.write(output_buffer[:CHUNK])
+            output_buffer = output_buffer[CHUNK:]
         update_visualization(output_data=output_audio)
     
     elif res["type"] == "response.done":
@@ -183,23 +189,20 @@ def on_close(ws, close_status_code, close_msg):
     p.terminate()
 
 def close_app():
-    """Cierra la aplicación de forma segura."""
     global running
     running = False
     ws.close()
     root.destroy()
 
-#Headers para auth
+# Headers para auth
 headers = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
     "OpenAI-Beta": "realtime=v1"
 }
 
-#Crear instancia de WebSocketApp
 ws = WebSocketApp(url, header=headers, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-threading.Thread(target=lambda: ws.run_forever()).start() # Ejecutar WebSocket en un hilo separado
-root.bind("<Escape>", lambda event: close_app()) # Asignar la tecla Escape para cerrar la app
+threading.Thread(target=lambda: ws.run_forever()).start()
+root.bind("<Escape>", lambda event: close_app())
 
-#Iniciar la interfaz
 update_visualization()
 root.mainloop()
