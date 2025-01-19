@@ -2,6 +2,9 @@
 
 Este proyecto es una demo de un asistente que permite mantener una conversación por voz en tiempo real utilizando la Realtime API de OpenAI con el modelo `gpt-4o-realtime-preview-2024-10-01`.
 
+![image](https://github.com/user-attachments/assets/9bea5ea3-9465-44bd-a2cb-46c884614fb9)
+
+
 ## Características
 
 - **Conversación en tiempo real** con reconocimiento de voz y generación de respuestas, haciendo uso de prompts customizados.
